@@ -1,0 +1,86 @@
+version: '3'
+
+services:
+  file-loader:
+    build: ./file-loader/target/docker/stage
+    volumes:
+      - ./file-loader/src/main/resources:/data/
+    entrypoint:
+      - /opt/docker/bin/fileloader
+      - /data/reviews.json
+      #- /data/reviews_big.json
+    depends_on:
+      - kafka01.internal-service
+      - kafka02.internal-service
+      - kafka03.internal-service
+  summarizer:
+    build: ./summarizer/target/docker/stage
+    depends_on:
+      - file-loader
+      - kafka01.internal-service
+      - kafka02.internal-service
+      - kafka03.internal-service
+  api:
+    build: ./api/target/docker/stage
+    ports:
+      - 8080:8080
+    depends_on:
+      - file-loader
+      - kafka01.internal-service
+      - kafka02.internal-service
+      - kafka03.internal-service
+  frontend:
+    build: frontend
+    ports:
+      - '3000:80'
+    depends_on:
+      - api
+  postgres:
+    image: postgres:reviews
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+  zookeeper:
+    image: confluentinc/cp-zookeeper:5.2.1
+    ports:
+      - '2181:2181'
+    hostname: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+          default:
+            aliases:
+              - zookeeper.internal-service
+  kafka01.internal-service:
+    image: confluentinc/cp-kafka:5.2.1
+    depends_on:
+      - zookeeper
+    ports:
+      - '9092:9092'
+    environment:
+      KAFKA_BROKER_ID: 0
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper.internal-service:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka01.internal-service:9092
+  kafka02.internal-service:
+    image: confluentinc/cp-kafka:5.2.1
+    depends_on:
+      - zookeeper
+    ports:
+      - '9093:9093'
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper.internal-service:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka02.internal-service:9093
+  kafka03.internal-service:
+    image: confluentinc/cp-kafka:5.2.1
+    depends_on:
+      - zookeeper
+    ports:
+      - '9094:9094'
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper.internal-service:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka03.internal-service:9094
