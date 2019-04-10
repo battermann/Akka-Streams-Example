@@ -26,10 +26,10 @@ invoke --help <task_name>
 invoke up
 ```
 
-### Test Data
+## Test Data
 
 More test data can be downloaded from [here](http://jmcauley.ucsd.edu/data/amazon/).
 
-### Overview
+## Overview
 
 ![alt-text](akka-streams-example.png "overview")
